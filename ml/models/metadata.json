@@ -1,0 +1,39 @@
+{
+  "model_name": "HistGradientBoosting",
+  "model_version": "1.0.0",
+  "training_date": "2026-09-30T09:04:50Z",
+  "dataset": "CIC-IDS2017 Benchmark Subset",
+  "dataset_version": "2017-flow-v1",
+  "feature_version": "v1.0.0",
+  "label_version": "standardized-7-class",
+  "algorithm": "HistGradientBoosting",
+  "feature_columns": [
+    "Destination Port",
+    "Flow Duration",
+    "Total Fwd Packets",
+    "Total Backward Packets",
+    "Total Length of Fwd Packets",
+    "Total Length of Bwd Packets",
+    "Flow Bytes/s",
+    "Flow Packets/s",
+    "SYN Flag Count",
+    "ACK Flag Count"
+  ],
+  "target_classes": [
+    "BOTNET",
+    "BRUTE_FORCE",
+    "DOS_DDOS",
+    "INFILTRATION",
+    "NORMAL",
+    "PORT_SCAN",
+    "WEB_ATTACK"
+  ],
+  "metrics": {
+    "accuracy": 0.9975,
+    "macro_precision": 0.9909,
+    "macro_recall": 0.9932,
+    "macro_f1": 0.9918,
+    "weighted_f1": 0.9975
+  },
+  "binary_path": "best_threat_model.joblib"
+}

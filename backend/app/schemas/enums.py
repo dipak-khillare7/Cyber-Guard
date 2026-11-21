@@ -1,0 +1,61 @@
+from enum import Enum
+
+
+class ThreatType(str, Enum):
+    NORMAL = "NORMAL"
+    DOS_DDOS = "DOS_DDOS"
+    BRUTE_FORCE = "BRUTE_FORCE"
+    PORT_SCAN = "PORT_SCAN"
+    WEB_ATTACK = "WEB_ATTACK"
+    BOTNET = "BOTNET"
+    INFILTRATION = "INFILTRATION"
+    DATA_EXFILTRATION = "DATA_EXFILTRATION"
+    MALWARE = "MALWARE"
+    CREDENTIAL_ATTACK = "CREDENTIAL_ATTACK"
+
+
+class RiskLevel(str, Enum):
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    CRITICAL = "CRITICAL"
+
+
+class ActionType(str, Enum):
+    LOG = "LOG"
+    ALERT = "ALERT"
+    SIMULATED_BLOCK = "SIMULATED_BLOCK"
+    SIMULATED_ISOLATION = "SIMULATED_ISOLATION"
+    ESCALATE = "ESCALATE"
+
+
+class ActionStatus(str, Enum):
+    PENDING = "PENDING"
+    EXECUTED = "EXECUTED"
+    FAILED = "FAILED"
+    SIMULATED = "SIMULATED"
+
+
+class AlertStatus(str, Enum):
+    NEW = "NEW"
+    ACKNOWLEDGED = "ACKNOWLEDGED"
+    INVESTIGATING = "INVESTIGATING"
+    RESOLVED = "RESOLVED"
+    FALSE_POSITIVE = "FALSE_POSITIVE"
+    IGNORED = "IGNORED"
+
+
+class IncidentStatus(str, Enum):
+    OPEN = "OPEN"
+    IN_PROGRESS = "IN_PROGRESS"
+    INVESTIGATING = "INVESTIGATING"
+    RESOLVED = "RESOLVED"
+    FALSE_POSITIVE = "FALSE_POSITIVE"
+    CLOSED = "CLOSED"
+
+
+class EventType(str, Enum):
+    NETWORK = "NETWORK"
+    SYSTEM = "SYSTEM"
+    AUTH = "AUTH"
+    LOG = "LOG"

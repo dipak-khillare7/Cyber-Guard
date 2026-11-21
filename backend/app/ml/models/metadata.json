@@ -1,0 +1,13 @@
+{
+  "model_name": "foundation_threat_classifier",
+  "model_version": "0.1.0-foundation",
+  "training_dataset": "Pending dataset selection & analysis",
+  "training_date": "2026-09-30T00:00:00Z",
+  "feature_version": "v1.0.0",
+  "algorithm": "Heuristic Rule Fallback Interface",
+  "metrics": {
+    "accuracy": 0.0,
+    "sample_count": 0
+  },
+  "binary_path": "model.joblib"
+}

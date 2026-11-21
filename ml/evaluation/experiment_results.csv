@@ -1,0 +1,5 @@
+model_name,accuracy,macro_precision,macro_recall,macro_f1,weighted_f1,train_time_sec,inference_time_ms_per_sample
+LogisticRegression,0.9318,0.8544,0.9792,0.8915,0.9404,0.5234,0.0015
+DecisionTree,0.9906,0.9651,0.9911,0.9762,0.991,0.033,0.0012
+RandomForest,0.9906,0.9651,0.9911,0.9762,0.991,0.2372,0.0178
+HistGradientBoosting,0.9975,0.9909,0.9932,0.9918,0.9975,0.9349,0.0152

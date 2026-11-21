@@ -1,0 +1,57 @@
+{
+  "BOTNET": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1-score": 1.0,
+    "support": 60.0
+  },
+  "BRUTE_FORCE": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1-score": 1.0,
+    "support": 165.0
+  },
+  "DOS_DDOS": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1-score": 1.0,
+    "support": 375.0
+  },
+  "INFILTRATION": {
+    "precision": 1.0,
+    "recall": 0.9565217391304348,
+    "f1-score": 0.9777777777777777,
+    "support": 23.0
+  },
+  "NORMAL": {
+    "precision": 0.9986631016042781,
+    "recall": 0.996,
+    "f1-score": 0.9973297730307076,
+    "support": 750.0
+  },
+  "PORT_SCAN": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1-score": 1.0,
+    "support": 180.0
+  },
+  "WEB_ATTACK": {
+    "precision": 0.9375,
+    "recall": 1.0,
+    "f1-score": 0.967741935483871,
+    "support": 45.0
+  },
+  "accuracy": 0.9974968710888611,
+  "macro avg": {
+    "precision": 0.9908804430863255,
+    "recall": 0.9932173913043477,
+    "f1-score": 0.9918356408989081,
+    "support": 1598.0
+  },
+  "weighted avg": {
+    "precision": 0.9976125320420579,
+    "recall": 0.9974968710888611,
+    "f1-score": 0.9975185267576306,
+    "support": 1598.0
+  }
+}
