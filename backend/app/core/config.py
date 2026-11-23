@@ -1,7 +1,7 @@
 import secrets
 import warnings
 from typing import List, Union
-from pydantic import Field, SecretStr, field_validator, model_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -37,9 +37,6 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     SMTP_FROM_EMAIL: str = ""
     SMTP_FROM_NAME: str = "Cyber Guard"
-
-    VIRUSTOTAL_API_KEY: SecretStr = SecretStr("")
-    VIRUSTOTAL_LOOKUP_LIMIT_PER_MINUTE: int = Field(default=4, ge=1)
 
     ALLOWED_ORIGINS: Union[List[str], str] = [
         "http://localhost:3000",

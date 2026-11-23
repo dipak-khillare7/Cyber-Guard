@@ -51,11 +51,12 @@ def test_viewer_cannot_ingest_network_events_or_access_admin_operations(
         headers=headers,
     )
     list_response = client.get("/api/v1/events", headers=headers)
+    stats_response = client.get("/api/v1/statistics", headers=headers)
     admin_response = client.get("/api/v1/auth/users", headers=headers)
 
     assert ingest_response.status_code == 403
-    assert list_response.status_code == 200
-    assert list_response.json()["total"] == 0
+    assert list_response.status_code == 403
+    assert stats_response.status_code == 403
     assert admin_response.status_code == 403
 
 

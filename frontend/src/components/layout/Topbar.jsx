@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { ShieldCheck, RefreshCw, Cpu, Database, User, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
-import PortalSwitcher from './PortalSwitcher';
 
 const Topbar = ({ onRefresh }) => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -88,8 +87,6 @@ const Topbar = ({ onRefresh }) => {
             <RefreshCw size={14} className={backendStatus === 'CHECKING' ? 'animate-spin' : ''} />
           </button>
         </div>
-
-        <PortalSwitcher />
 
         {/* User Account & Logout Control */}
         {isAuthenticated && user && (

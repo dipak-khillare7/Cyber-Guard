@@ -47,7 +47,6 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     await authService.logout();
-    sessionStorage.removeItem('soc_selected_portal');
     setToken(null);
     setUser(null);
   };

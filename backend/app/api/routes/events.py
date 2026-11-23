@@ -11,8 +11,6 @@ from app.schemas.alert import AlertCreate
 from app.schemas.enums import ThreatType, AlertStatus
 from app.api.deps import (
     enforce_ingestion_ip_rate_limit,
-    get_current_user,
-    get_data_owner_id,
     require_analyst,
 )
 from app.core.rate_limit import enforce_rate_limit
@@ -90,7 +88,7 @@ def list_events(
     event_type: Optional[str] = Query(None),
     scope: Literal["role", "own"] = Query("role"),
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_analyst),
 ):
     """
     Retrieves security events with pagination and optional event_type filtering.
@@ -100,9 +98,7 @@ def list_events(
         skip=skip,
         limit=limit,
         event_type=event_type,
-        owner_user_id=(
-            current_user.id if scope == "own" else get_data_owner_id(current_user)
-        ),
+        owner_user_id=current_user.id if scope == "own" else None,
     )
     return {
         "total": total,
@@ -116,7 +112,7 @@ def list_events(
 def get_event(
     event_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_analyst),
 ):
     """
     Retrieves a single security event by its ID.
@@ -124,7 +120,6 @@ def get_event(
     event = EventService.get_event_by_id(
         db,
         event_id,
-        owner_user_id=get_data_owner_id(current_user),
     )
     if not event:
         raise HTTPException(

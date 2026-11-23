@@ -6,15 +6,15 @@
 ---
 
 ## 1. Role Hierarchy & Matrix
-The system implements explicit Role-Based Access Control (RBAC) with three distinct operational roles:
+The system enforces role-based access control for the two operational roles:
 
 | Role | Permissions & Capabilities |
 | :--- | :--- |
 | **`ADMIN`** | User management (create, list, update role/account status), platform-wide SOC operations, audit-log access, and alert/incident/response-action management. |
 | **`ANALYST`** | Platform-wide SOC access: investigate events, view and update alerts/incidents, view simulated response actions, and view audit logs. Cannot manage users. |
-| **`VIEWER`** | Normal User access: submit events and view only their own events, detection history/trends, and statistics. Cannot access SOC alert, incident, response-action, audit-log, or user-management endpoints. |
+| **`VIEWER`** | Legacy role retained for existing user records. It has no access to SOC or user-only application endpoints. |
 
-`VIEWER` remains the stored role for Normal Users, so existing accounts and records need no role migration.
+Public registrations continue to receive `VIEWER`; public input cannot choose a role or grant Analyst/Admin privileges. An Administrator must explicitly assign an operational role. Existing role records are retained without a database migration.
 
 ---
 
@@ -39,15 +39,13 @@ def require_admin(current_user: User = Depends(get_current_user)) -> User:
 - `GET /api/v1/response-actions`: Requires `ADMIN` or `ANALYST`
 - `GET /api/v1/audit-logs`: Requires `ADMIN` or `ANALYST`
 - Alert updates, incident operations, and simulated response execution: Requires `ADMIN` or `ANALYST`
-- `GET /api/v1/detection/history`, event reads, and statistics: Requires an authenticated user; `VIEWER` results are owner-scoped
-- `POST /api/v1/events`: Requires any active authenticated role; Viewer-owned events remain scoped to that Viewer
-- `POST /api/v1/detection/analyze`: Requires any active authenticated role; resulting event ownership is scoped for Viewers
+- Event reads and ingestion, detection analysis/history/trends, statistics: Requires `ADMIN` or `ANALYST`
 - Public registration and email verification remain unauthenticated.
 
 ---
 
-## 3. Object-Level Authorization (BOLA Defense)
-Normal User event and detection-result lookups are scoped by the authenticated user's ID; requests for another user's event do not disclose the record. SOC alert and incident endpoints are not available to `VIEWER` at all. Analysts and Admins have platform-wide access to those SOC records, subject to authentication and role checks.
+## 3. Legacy Account Handling
+Existing `VIEWER` accounts remain in the users table and can authenticate, but receive Access Denied in the frontend and `403` for SOC APIs. The website-checker and Viewer-specific access-request endpoints are removed. Existing event ownership columns and related records are retained; they are not modified or deleted.
 
 An Admin-only user update operation supports role/account changes. The API rejects empty or null update fields and prevents demoting or deactivating the last active Admin. Role changes are recorded in the audit log without recording submitted passwords.
 

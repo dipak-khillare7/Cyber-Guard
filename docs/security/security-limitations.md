@@ -28,8 +28,8 @@ This document transparently outlines the known security limitations, trade-offs,
 - **Future Enhancement**: Consider Redis if database-backed counters become a throughput bottleneck.
 
 ### 2.4 Ingestion Request Bounds
-- Both event-ingestion endpoints require an active user's Bearer token. Requests are limited to 65,536 body bytes; individual event fields also have validation limits.
-- Viewer accounts can ingest and read their own events; analyst/admin-only mutations remain role protected.
+- Both event-ingestion endpoints require an `ADMIN` or `ANALYST` Bearer token. Requests are limited to 65,536 body bytes; individual event fields also have validation limits.
+- Legacy `VIEWER` accounts are retained for data compatibility but cannot access SOC APIs.
 
 ### 2.5 Security Certification Disclaimer
 - This project implements defense-in-depth security best practices inspired by OWASP Top 10 guidelines.

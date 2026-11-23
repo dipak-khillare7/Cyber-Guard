@@ -105,13 +105,6 @@ def get_current_user_optional(
         return None
 
 
-def get_data_owner_id(current_user: User) -> Optional[int]:
-    """Return a row ownership filter for Viewer accounts; staff roles retain global access."""
-    if current_user.role == UserRole.VIEWER:
-        return current_user.id
-    return None
-
-
 class RoleChecker:
     """
     Role-Based Access Control (RBAC) Dependency.
@@ -132,4 +125,3 @@ class RoleChecker:
 # Role-specific helpers
 require_admin = RoleChecker([UserRole.ADMIN])
 require_analyst = RoleChecker([UserRole.ADMIN, UserRole.ANALYST])
-require_viewer = RoleChecker([UserRole.ADMIN, UserRole.ANALYST, UserRole.VIEWER])

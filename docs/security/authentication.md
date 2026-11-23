@@ -36,7 +36,7 @@ FastAPI Dependency (get_current_user) Decodes & Validates JWT
 - **Secret Key**: Configured via environment variable `SECRET_KEY`.
 - **Claims**:
   - `sub`: User ID string (`id`).
-  - `role`: User role (`ADMIN`, `ANALYST`, `VIEWER`).
+  - `role`: Operational role (`ADMIN`, `ANALYST`) or the legacy `VIEWER` value, which is denied protected access.
   - `iat`: Issued at timestamp (UTC).
   - `exp`: Expiration timestamp (UTC), controlled by `ACCESS_TOKEN_EXPIRE_MINUTES`.
 - **Expiration Policy**: Default access tokens expire after 480 minutes (8 hours).

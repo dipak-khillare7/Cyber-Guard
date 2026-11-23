@@ -54,7 +54,7 @@ AI-Cyber-Threat-Detection/
 │   │   ├── schemas/        # Pydantic V2 validation schemas & threat enums
 │   │   ├── services/       # Decoupled business logic (Event, Alert, Incident, Risk, Response)
 │   │   └── main.py         # FastAPI application entry point
-│   ├── tests/              # Pytest automated test suite (24 tests)
+│   ├── tests/              # Pytest automated test suite
 │   ├── requirements.txt    # Python dependencies
 │   └── pytest.ini          # Pytest path configuration
 ├── frontend/
@@ -153,14 +153,13 @@ SMTP relay, registration and resend requests return a configuration error and no
 verification code is exposed by the API.
 
 The first-party registration page is `/register` (also the application root). Public
-accounts receive the Viewer role and cannot sign in until they enter the emailed
+accounts receive the legacy `VIEWER` role and cannot sign in until they enter the emailed
 6-digit code. Verification codes expire after 10 minutes and can only be used once.
-Existing admin-created accounts and the seeded administrator remain verified.
-
-Viewer accounts can read only security events, alerts, incidents, response actions,
-and summary metrics owned by their account. Analyst and Admin roles retain system-wide
-visibility. Existing records without an owner remain available to Analyst/Admin
-accounts and are not exposed to Viewers.
+`VIEWER` is retained only so existing user records remain readable; these accounts have
+no SOC API permissions and are sent to Access Denied after login. An Administrator must
+explicitly assign an authorized role. Public registration cannot create Analyst or Admin
+accounts. Existing accounts, events, alerts, incidents, response actions, and audit logs
+are preserved without a role or database migration.
 
 ---
 
@@ -171,17 +170,27 @@ To run the automated backend & ML test suite:
 ```bash
 cd backend
 .\venv\Scripts\activate
-pytest -v
+python -m pytest -v
 ```
 
-All 24 unit, ML inference, and API integration tests will run cleanly against an isolated in-memory SQLite database instance.
+Frontend utility tests use Node's built-in test runner:
 
-To run the frontend production build verification:
+```bash
+cd frontend
+npm test
+```
+
+To verify the frontend production build:
 
 ```bash
 cd frontend
 npm run build
 ```
+
+The frontend package currently does not include ESLint, so `npm run lint` requires
+installing and configuring that tool before it can run.
+The frontend test covers post-login role routing; it does not mount React components in a
+browser-like test environment.
 
 ---
 

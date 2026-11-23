@@ -15,7 +15,7 @@ The security test suite (`tests/test_phase5_security.py`) evaluates application 
 | `test_unauthenticated_protected_route` | Broken Object Level & Function Authorization | **PASSED** — Protected `/audit-logs` endpoint rejects request with 401 |
 | `test_user_creation_and_rbac` | Privilege Escalation (RBAC) | **PASSED** — `ANALYST` role can view audit logs but receives 403 on `ADMIN` user endpoint |
 | `test_ingestion_requires_authentication` | Unauthenticated Ingestion | **PASSED** — Both event-ingestion POST endpoints reject missing Bearer tokens |
-| `test_viewer_can_ingest_but_cannot_access_admin_operations` | Role and Object-Level Authorization | **PASSED** — Viewer event ownership is scoped and admin user management remains forbidden |
+| `test_viewer_cannot_ingest_network_events_or_access_admin_operations`, `test_legacy_viewer_has_no_soc_or_removed_user_feature_api_access` | Role-Based Authorization | Legacy `VIEWER` accounts are denied SOC APIs; removed user-only API routes return 404 |
 | `test_ingestion_rejects_invalid_fields` | Input Validation | **PASSED** — Malformed IPs, ports, protocols, numeric values, and oversized text are rejected |
 | `test_request_body_size_limit_rejects_large_payload` | Request Resource Limits | **PASSED** — Payloads above 65,536 bytes receive 413 |
 | `test_ingestion_rate_limit_is_enforced`, `test_login_rate_limit_is_enforced` | Rate Limiting | **PASSED** — Shared SQL-backed counters return 429 and `Retry-After` |
@@ -30,10 +30,7 @@ The security test suite (`tests/test_phase5_security.py`) evaluates application 
 ---
 
 ## 2. Test Execution Summary
-Latest test suite execution across all modules (`tests/` directory):
-- **Total Tests Ran**: 99
-- **Passed**: 99
-- **Failed**: 0
-- **Duration**: 51.33 seconds
-- **Pass Rate**: **100%**
-- **Warnings**: 21 dependency/Pydantic deprecation or test-configuration warnings; no test failures.
+Latest verification after removing the Viewer portal and website checker:
+- **Backend**: 103 passed, 0 failed.
+- **Frontend unit tests**: 2 passed, 0 failed.
+- **Frontend production build**: passed; Vite reported the existing large-chunk advisory.

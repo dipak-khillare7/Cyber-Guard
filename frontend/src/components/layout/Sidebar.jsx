@@ -10,7 +10,6 @@ import {
   PlayCircle,
   Settings,
   FileText,
-  UserRoundCog,
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -25,7 +24,6 @@ const Sidebar = () => {
     { path: `${analystBase}/response-actions`, label: 'Simulated Responses', icon: PlayCircle, roles: ['ADMIN', 'ANALYST'] },
     { path: `${analystBase}/audit-logs`, label: 'Audit Logs', icon: FileText, roles: ['ADMIN', 'ANALYST'] },
     { path: `${analystBase}/settings`, label: 'Settings & Model', icon: Settings, roles: ['ADMIN', 'ANALYST'] },
-    { path: '/admin/access-requests', label: 'Analyst Access Requests', icon: UserRoundCog, roles: ['ADMIN'] },
   ];
 
   const visibleNavItems = allNavItems.filter((item) => hasRole(item.roles));

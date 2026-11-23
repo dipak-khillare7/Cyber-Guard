@@ -17,8 +17,8 @@ def test_seed_admin_login(client):
     assert data["token_type"] == "bearer"
     assert data["user"]["username"] == settings.ADMIN_USERNAME
     assert data["user"]["role"] == "ADMIN"
-    assert "portal:admin" in data["user"]["permissions"]
-    assert "portal:analyst" in data["user"]["permissions"]
+    assert "soc:admin" in data["user"]["permissions"]
+    assert "soc:analyst" in data["user"]["permissions"]
 
 
 def test_invalid_login_credentials(client):
@@ -66,8 +66,7 @@ def test_user_creation_and_rbac(client):
     created_user = create_res.json()
     assert created_user["username"] == "analyst1"
     assert created_user["role"] == "ANALYST"
-    assert "portal:normal" in created_user["permissions"]
-    assert "portal:analyst" in created_user["permissions"]
+    assert created_user["permissions"] == ["soc:analyst"]
 
     # 3. Login as the new Analyst
     analyst_login = client.post(f"{settings.API_PREFIX}/auth/login", json={

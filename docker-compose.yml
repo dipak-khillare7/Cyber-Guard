@@ -36,8 +36,6 @@ services:
       SECRET_KEY: "${SECRET_KEY:?Set SECRET_KEY in .env}"
       ADMIN_INITIAL_PASSWORD: "${ADMIN_INITIAL_PASSWORD:?Set ADMIN_INITIAL_PASSWORD in .env}"
       ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:-http://localhost,http://127.0.0.1,http://localhost:5173,http://127.0.0.1:5173}"
-      VIRUSTOTAL_API_KEY: "${VIRUSTOTAL_API_KEY:-}"
-      VIRUSTOTAL_LOOKUP_LIMIT_PER_MINUTE: "${VIRUSTOTAL_LOOKUP_LIMIT_PER_MINUTE:-4}"
       LOG_LEVEL: INFO
     depends_on:
       db:

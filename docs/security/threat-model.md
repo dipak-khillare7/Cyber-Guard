@@ -22,7 +22,7 @@ This document presents the application threat model for the AI-Based Cybersecuri
 ### 2.2 Authorization & Access Control Threats
 | Threat Category | Risk Description | Severity | Mitigation Implemented |
 | :--- | :--- | :--- | :--- |
-| **Privilege Escalation** | Low-privilege users attempt administrative endpoints | CRITICAL | Mandatory backend RBAC enforcement (`ADMIN`, `ANALYST`, `VIEWER`), FastAPI dependency guards |
+| **Privilege Escalation** | Unapproved users attempt privileged endpoints | CRITICAL | Mandatory backend RBAC enforcement (`ADMIN`, `ANALYST`); legacy `VIEWER` accounts are denied by FastAPI dependency guards |
 | **BOLA / IDOR** | Manipulating resource IDs to access unauthorized objects | HIGH | Object-level permission checks in backend routes (`GET /alerts/{id}`, `PATCH /incidents/{id}`) |
 | **Frontend Bypass** | Client-side role tampering in React | HIGH | Backend is the single authoritative security boundary; client state checks are for UX only |
 

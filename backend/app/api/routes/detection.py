@@ -13,8 +13,6 @@ from app.models.alert import Alert
 from app.schemas.enums import ThreatType, RiskLevel
 from app.api.deps import (
     enforce_ingestion_ip_rate_limit,
-    get_current_user,
-    get_data_owner_id,
     require_analyst,
 )
 from app.core.rate_limit import enforce_rate_limit
@@ -99,15 +97,13 @@ def get_detection_history(
     start_date: Optional[datetime] = Query(None),
     end_date: Optional[datetime] = Query(None),
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user = Depends(require_analyst)
 ):
     """
     Retrieves paginated historical detection analyses with filtering support.
     """
     query = db.query(SecurityEvent).outerjoin(Alert, SecurityEvent.id == Alert.event_id)
-    owner_user_id = (
-        current_user.id if scope == "own" else get_data_owner_id(current_user)
-    )
+    owner_user_id = current_user.id if scope == "own" else None
     if owner_user_id is not None:
         query = query.filter(SecurityEvent.owner_user_id == owner_user_id)
 
@@ -157,7 +153,7 @@ def get_detection_history(
 def get_detection_trend(
     hours: int = Query(24, ge=1, le=720),
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    _current_user=Depends(require_analyst),
 ):
     """
     Computes time-series detection trends grouped by time window in IST (Asia/Kolkata).
@@ -168,9 +164,6 @@ def get_detection_trend(
     cutoff_naive = (now_utc - timedelta(hours=hours)).replace(tzinfo=None)
 
     query = db.query(SecurityEvent).filter(SecurityEvent.timestamp >= cutoff_naive)
-    owner_user_id = get_data_owner_id(current_user)
-    if owner_user_id is not None:
-        query = query.filter(SecurityEvent.owner_user_id == owner_user_id)
     events = query.all()
 
     # Aggregate events by IST hour label

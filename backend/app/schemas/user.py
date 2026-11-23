@@ -52,11 +52,11 @@ class UserResponse(UserBase):
     @model_validator(mode="after")
     def add_role_permissions(self):
         if self.role == UserRole.VIEWER:
-            self.permissions = ["portal:normal"]
+            self.permissions = []
         elif self.role == UserRole.ANALYST:
-            self.permissions = ["portal:normal", "portal:analyst"]
+            self.permissions = ["soc:analyst"]
         elif self.role == UserRole.ADMIN:
-            self.permissions = ["portal:normal", "portal:analyst", "portal:admin"]
+            self.permissions = ["soc:analyst", "soc:admin"]
         return self
 
     class Config:

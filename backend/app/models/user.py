@@ -6,6 +6,7 @@ from app.database import Base
 class UserRole(str, enum.Enum):
     ADMIN = "ADMIN"
     ANALYST = "ANALYST"
+    # Retained for existing and public-registration accounts; it grants no protected access.
     VIEWER = "VIEWER"
 
 class User(Base):

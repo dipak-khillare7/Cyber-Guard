@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AlertCircle, CheckCircle2, Eye, EyeOff, LockKeyhole, Mail, Shield } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { authService } from '../services/authService';
+import { getAuthenticatedHome } from '../utils/authRedirect';
 import '../styles/auth.css';
 
 const Login = () => {
@@ -27,8 +28,8 @@ const Login = () => {
     setNeedsVerification(false);
     setSubmitting(true);
     try {
-      await login(email.trim(), password);
-      navigate('/dashboard/select', { replace: true });
+      const result = await login(email.trim(), password);
+      navigate(getAuthenticatedHome(result.user?.role), { replace: true });
     } catch (requestError) {
       const message = requestError.message || 'Unable to sign in. Check your credentials and try again.';
       setError(message);

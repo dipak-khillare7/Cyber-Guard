@@ -14,7 +14,6 @@ def init_db() -> None:
     try:
         Base.metadata.create_all(bind=engine)
         _upgrade_user_schema()
-        _upgrade_website_assessment_schema()
         logger.info("Database tables created/verified successfully.")
         
         # Seed initial admin
@@ -54,41 +53,3 @@ def _upgrade_user_schema() -> None:
                 connection.execute(
                     text(f"ALTER TABLE {table} ADD COLUMN {column} INTEGER NULL")
                 )
-
-
-def _upgrade_website_assessment_schema() -> None:
-    columns = {
-        column["name"]
-        for column in inspect(engine).get_columns("website_assessments")
-    }
-    additions = {
-        "url_origin": "VARCHAR(2048) NULL",
-        "risk_score": "FLOAT NULL",
-        "analysis_status": "VARCHAR(32) NOT NULL DEFAULT 'LEGACY'",
-        "engine_version": "VARCHAR(32) NOT NULL DEFAULT 'legacy'",
-        "scoring_version": "VARCHAR(32) NOT NULL DEFAULT 'legacy'",
-        "dns_status": "VARCHAR(32) NOT NULL DEFAULT 'NOT_CHECKED'",
-        "dns_findings_json": "TEXT NULL",
-        "ssl_status": "VARCHAR(32) NOT NULL DEFAULT 'NOT_CHECKED'",
-        "ssl_findings_json": "TEXT NULL",
-        "evidence_json": "TEXT NULL",
-        "risk_factors_json": "TEXT NULL",
-        "risk_reducing_factors_json": "TEXT NULL",
-        "limitations_json": "TEXT NULL",
-        "recommendations_json": "TEXT NULL",
-        "idempotency_key": "VARCHAR(128) NULL",
-    }
-    with engine.begin() as connection:
-        for name, definition in additions.items():
-            if name not in columns:
-                connection.execute(
-                    text(f"ALTER TABLE website_assessments ADD COLUMN {name} {definition}")
-                )
-        from app.models.website_assessment import WebsiteAssessment
-
-        idempotency_index = next(
-            index
-            for index in WebsiteAssessment.__table__.indexes
-            if index.name == "uq_website_assessments_owner_idempotency_key"
-        )
-        idempotency_index.create(bind=connection, checkfirst=True)

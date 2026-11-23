@@ -3,7 +3,7 @@
 ## 1. System Defense-in-Depth Model
 
 ```text
-User / SOC Analyst / Admin
+SOC Analyst / Admin / Unapproved account
             ↓
 React 18 Web Dashboard (Client Display Boundary & Auth Context)
             ↓
@@ -13,7 +13,7 @@ Request Body Size Limit (65,536 bytes)
             ↓
 Authentication Layer (OAuth2 Bearer JWT Validation / Password Verification)
             ↓
-Authorization Layer (Role-Based Access Control: ADMIN, ANALYST, VIEWER)
+Authorization Layer (Role-Based Access Control: ADMIN, ANALYST; legacy VIEWER is denied)
             ↓
 Shared SQL-Backed Rate Limiter (authentication & event ingestion)
             ↓

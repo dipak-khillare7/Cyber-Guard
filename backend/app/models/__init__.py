@@ -5,8 +5,6 @@ from app.models.response_action import ResponseAction
 from app.models.user import User, UserRole
 from app.models.audit_log import AuditLog
 from app.models.rate_limit_bucket import RateLimitBucket
-from app.models.website_assessment import WebsiteAssessment
-from app.models.analyst_access_request import AnalystAccessRequest
 
 __all__ = [
     "SecurityEvent",
@@ -17,6 +15,4 @@ __all__ = [
     "UserRole",
     "AuditLog",
     "RateLimitBucket",
-    "WebsiteAssessment",
-    "AnalystAccessRequest",
 ]
