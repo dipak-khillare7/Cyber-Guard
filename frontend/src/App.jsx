@@ -13,12 +13,14 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import VerifyEmail from './pages/VerifyEmail';
 import Dashboard from './pages/Dashboard';
+import Analytics from './pages/Analytics';
 import Detections from './pages/Detections';
 import Alerts from './pages/Alerts';
 import Incidents from './pages/Incidents';
 import ResponseActions from './pages/ResponseActions';
 import AuditLogs from './pages/AuditLogs';
 import Settings from './pages/Settings';
+import AnalystAccountRequests from './pages/AnalystAccountRequests';
 import Unauthorized from './pages/Unauthorized';
 import LoadingState from './components/common/LoadingState';
 import { getAuthenticatedHome } from './utils/authRedirect';
@@ -105,6 +107,10 @@ function AppLayout() {
               element={<ProtectedRoute allowedRoles={STAFF_ROLES}><Detections /></ProtectedRoute>}
             />
             <Route
+              path="/analyst/analytics"
+              element={<ProtectedRoute allowedRoles={STAFF_ROLES}><Analytics /></ProtectedRoute>}
+            />
+            <Route
               path="/analyst/investigations"
               element={<ProtectedRoute allowedRoles={STAFF_ROLES}><Detections /></ProtectedRoute>}
             />
@@ -136,10 +142,22 @@ function AppLayout() {
                 : <ProtectedRoute allowedRoles={['ADMIN']}><Dashboard /></ProtectedRoute>}
             />
             <Route
+              path="/admin/analyst-requests"
+              element={<ProtectedRoute allowedRoles={['ADMIN']}><AnalystAccountRequests /></ProtectedRoute>}
+            />
+            <Route
               path="/detections"
               element={
                 <ProtectedRoute allowedRoles={STAFF_ROLES}>
                   <LegacyStaffRoute analystPath="/analyst/detections"><Detections /></LegacyStaffRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/analytics"
+              element={
+                <ProtectedRoute allowedRoles={STAFF_ROLES}>
+                  <LegacyStaffRoute analystPath="/analyst/analytics"><Analytics /></LegacyStaffRoute>
                 </ProtectedRoute>
               }
             />

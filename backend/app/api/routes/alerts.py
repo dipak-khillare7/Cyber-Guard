@@ -5,7 +5,7 @@ from app.database import get_db
 from app.schemas.alert import AlertRead, AlertUpdate
 from app.services.alert_service import AlertService
 from app.services.audit_service import AuditService
-from app.api.deps import require_analyst
+from app.api.deps import analyst_owner_id, require_analyst
 
 router = APIRouter(prefix="/alerts", tags=["Alerts"])
 
@@ -30,6 +30,7 @@ def list_alerts(
         risk_level=risk_level,
         status=status_filter,
         threat_type=threat_type,
+        owner_user_id=analyst_owner_id(current_user),
     )
     return {
         "total": total,
@@ -48,7 +49,11 @@ def get_alert(
     """
     Retrieves a single alert by its ID.
     """
-    alert = AlertService.get_alert_by_id(db, alert_id)
+    alert = AlertService.get_alert_by_id(
+        db,
+        alert_id,
+        owner_user_id=analyst_owner_id(current_user),
+    )
     if not alert:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -69,7 +74,12 @@ def update_alert(
     Updates the status of an alert (ACKNOWLEDGED, INVESTIGATING, RESOLVED, FALSE_POSITIVE).
     Requires Analyst or Admin role. Generates audit trail log.
     """
-    alert = AlertService.update_alert_status(db, alert_id, alert_update)
+    alert = AlertService.update_alert_status(
+        db,
+        alert_id,
+        alert_update,
+        owner_user_id=analyst_owner_id(analyst_user),
+    )
     if not alert:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -81,6 +91,7 @@ def update_alert(
         db=db,
         action="ALERT_STATUS_UPDATED",
         user_id=analyst_user.id,
+        owner_user_id=alert.owner_user_id,
         username=analyst_user.username,
         resource_type="ALERT",
         resource_id=str(alert_id),

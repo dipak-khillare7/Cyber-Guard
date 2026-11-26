@@ -108,8 +108,16 @@ class AlertService:
         return alerts, total
 
     @staticmethod
-    def update_alert_status(db: Session, alert_id: int, alert_update: AlertUpdate) -> Optional[Alert]:
-        db_alert = db.query(Alert).filter(Alert.id == alert_id).first()
+    def update_alert_status(
+        db: Session,
+        alert_id: int,
+        alert_update: AlertUpdate,
+        owner_user_id: Optional[int] = None,
+    ) -> Optional[Alert]:
+        query = db.query(Alert).filter(Alert.id == alert_id)
+        if owner_user_id is not None:
+            query = query.filter(Alert.owner_user_id == owner_user_id)
+        db_alert = query.first()
         if db_alert:
             db_alert.status = alert_update.status.value if hasattr(alert_update.status, "value") else str(alert_update.status)
             db.commit()

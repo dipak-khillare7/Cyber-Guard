@@ -44,7 +44,8 @@ FastAPI Dependency (get_current_user) Decodes & Validates JWT
 ---
 
 ## 4. Public Authentication and Rate Limits
-- Registration, email verification, and verification resend are public routes and remain usable without a Bearer token.
+- Registration, email verification, and verification resend are public routes and remain usable without a Bearer token. A new account remains inactive until an Admin approves its request; email OTP verification is also required before login. Approval assigns `ANALYST`, and Analyst login routes to `/analyst/dashboard`. Public role fields do not affect the assigned role, and public registration cannot create `ADMIN` accounts.
+- Verification codes are emailed, expire after 10 minutes, are single-use, and are invalidated after 5 failed attempts.
 - Shared SQL-backed fixed-window limits apply: registration (5/minute per client IP), login (10/minute per client IP), verification (10/minute per IP and 5 attempts per email per 10 minutes), and resend (3/minute per IP).
 - Rate-limit database failures reject the request with a safe `503`; throttled requests return `429` and `Retry-After`.
 

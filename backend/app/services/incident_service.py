@@ -4,6 +4,7 @@ from sqlalchemy import desc
 from datetime import datetime, timezone
 from app.models.incident import Incident
 from app.models.alert import Alert
+from app.models.response_action import ResponseAction
 from app.schemas.incident import IncidentCreate, IncidentUpdate
 from app.schemas.enums import IncidentStatus, RiskLevel, ThreatType
 from app.schemas.response_action import ResponseActionCreate
@@ -21,8 +22,16 @@ class IncidentService:
         db: Session,
         incident_in: IncidentCreate,
         creator_user_id: Optional[int] = None,
+        owner_user_id: Optional[int] = None,
     ) -> Incident:
-        alert = db.query(Alert).filter(Alert.id == incident_in.alert_id).first() if incident_in.alert_id else None
+        alert = None
+        if incident_in.alert_id:
+            alert_query = db.query(Alert).filter(Alert.id == incident_in.alert_id)
+            if owner_user_id is not None:
+                alert_query = alert_query.filter(Alert.owner_user_id == owner_user_id)
+            alert = alert_query.first()
+            if not alert:
+                raise ValueError("Alert not found.")
         owner_user_id = alert.owner_user_id if alert else creator_user_id
         db_incident = Incident(
             owner_user_id=owner_user_id,
@@ -73,9 +82,14 @@ class IncidentService:
         incident_id: int,
         owner_user_id: Optional[int] = None,
     ) -> Optional[Incident]:
+        response_actions = Incident.response_actions
+        if owner_user_id is not None:
+            response_actions = response_actions.and_(
+                ResponseAction.owner_user_id == owner_user_id
+            )
         query = (
             db.query(Incident)
-            .options(joinedload(Incident.response_actions))
+            .options(joinedload(response_actions))
             .filter(Incident.id == incident_id)
         )
         if owner_user_id is not None:
@@ -91,7 +105,12 @@ class IncidentService:
         status: Optional[str] = None,
         owner_user_id: Optional[int] = None,
     ) -> Tuple[List[Incident], int]:
-        query = db.query(Incident).options(joinedload(Incident.response_actions))
+        response_actions = Incident.response_actions
+        if owner_user_id is not None:
+            response_actions = response_actions.and_(
+                ResponseAction.owner_user_id == owner_user_id
+            )
+        query = db.query(Incident).options(joinedload(response_actions))
         if owner_user_id is not None:
             query = query.filter(Incident.owner_user_id == owner_user_id)
         if severity:
@@ -103,8 +122,16 @@ class IncidentService:
         return incidents, total
 
     @staticmethod
-    def update_incident(db: Session, incident_id: int, update_in: IncidentUpdate) -> Optional[Incident]:
-        db_incident = db.query(Incident).filter(Incident.id == incident_id).first()
+    def update_incident(
+        db: Session,
+        incident_id: int,
+        update_in: IncidentUpdate,
+        owner_user_id: Optional[int] = None,
+    ) -> Optional[Incident]:
+        query = db.query(Incident).filter(Incident.id == incident_id)
+        if owner_user_id is not None:
+            query = query.filter(Incident.owner_user_id == owner_user_id)
+        db_incident = query.first()
         if not db_incident:
             return None
 

@@ -9,6 +9,13 @@ class UserRole(str, enum.Enum):
     # Retained for existing and public-registration accounts; it grants no protected access.
     VIEWER = "VIEWER"
 
+
+class AnalystRequestStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -24,6 +31,9 @@ class User(Base):
     email_verification_expires_at = Column(DateTime, nullable=True)
     email_verification_attempts = Column(Integer, default=0, server_default=text("0"), nullable=False)
     verification_last_sent_at = Column(DateTime, nullable=True)
+    analyst_request_status = Column(String(20), nullable=True, index=True)
+    reviewed_by_user_id = Column(Integer, nullable=True)
+    reviewed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
     last_login_at = Column(DateTime, nullable=True)

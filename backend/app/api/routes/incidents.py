@@ -7,7 +7,7 @@ from app.schemas.response_action import ResponseActionCreate, ResponseActionRead
 from app.services.incident_service import IncidentService
 from app.services.response_service import ResponseService
 from app.services.audit_service import AuditService
-from app.api.deps import require_analyst
+from app.api.deps import analyst_owner_id, require_analyst
 
 router = APIRouter(prefix="/incidents", tags=["Incidents"])
 
@@ -22,22 +22,30 @@ def create_incident(
     """
     Creates a new security incident manually or from an alert. Requires Analyst/Admin role.
     """
-    new_inc = IncidentService.create_incident(
-        db,
-        incident_in,
-        creator_user_id=analyst_user.id,
-    )
+    try:
+        new_inc = IncidentService.create_incident(
+            db,
+            incident_in,
+            creator_user_id=analyst_user.id,
+            owner_user_id=analyst_owner_id(analyst_user),
+        )
+    except ValueError as err:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "ALERT_NOT_FOUND", "message": "Alert not found."},
+        ) from err
     ip_addr = request.client.host if request.client else "unknown"
     AuditService.log_event(
         db=db,
         action="INCIDENT_CREATED",
         user_id=analyst_user.id,
+        owner_user_id=new_inc.owner_user_id,
         username=analyst_user.username,
         resource_type="INCIDENT",
         resource_id=str(new_inc.id),
         ip_address=ip_addr,
         status="SUCCESS",
-        metadata={"title": new_inc.title, "severity": new_inc.severity}
+        metadata={"threat_type": new_inc.threat_type, "severity": new_inc.severity}
     )
     return new_inc
 
@@ -49,7 +57,7 @@ def list_incidents(
     severity: Optional[str] = Query(None),
     status_filter: Optional[str] = Query(None, alias="status"),
     db: Session = Depends(get_db),
-    _analyst_user = Depends(require_analyst)
+    analyst_user = Depends(require_analyst)
 ):
     """
     Retrieves security incidents with pagination and optional filtering.
@@ -60,6 +68,7 @@ def list_incidents(
         limit=limit,
         severity=severity,
         status=status_filter,
+        owner_user_id=analyst_owner_id(analyst_user),
     )
     return {
         "total": total,
@@ -73,12 +82,16 @@ def list_incidents(
 def get_incident(
     incident_id: int,
     db: Session = Depends(get_db),
-    _analyst_user = Depends(require_analyst)
+    analyst_user = Depends(require_analyst)
 ):
     """
     Retrieves a single incident by its ID, including attached response action history.
     """
-    incident = IncidentService.get_incident_by_id(db, incident_id)
+    incident = IncidentService.get_incident_by_id(
+        db,
+        incident_id,
+        owner_user_id=analyst_owner_id(analyst_user),
+    )
     if not incident:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -99,7 +112,12 @@ def update_incident(
     Updates incident status or assigned handler. Requires Analyst or Admin role.
     Generates audit log entry.
     """
-    incident = IncidentService.update_incident(db, incident_id, update_in)
+    incident = IncidentService.update_incident(
+        db,
+        incident_id,
+        update_in,
+        owner_user_id=analyst_owner_id(analyst_user),
+    )
     if not incident:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -111,6 +129,7 @@ def update_incident(
         db=db,
         action="INCIDENT_STATUS_UPDATED",
         user_id=analyst_user.id,
+        owner_user_id=incident.owner_user_id,
         username=analyst_user.username,
         resource_type="INCIDENT",
         resource_id=str(incident_id),
@@ -133,16 +152,30 @@ def trigger_response_action(
     Executes a safe simulated response action for the specified incident.
     Requires Analyst or Admin role.
     """
-    if action_in.incident_id != incident_id:
-        action_in.incident_id = incident_id
+    incident = IncidentService.get_incident_by_id(
+        db,
+        incident_id,
+        owner_user_id=analyst_owner_id(analyst_user),
+    )
+    if not incident:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "INCIDENT_NOT_FOUND", "message": "Incident not found."},
+        )
+    action_in.incident_id = incident_id
 
     try:
-        action = ResponseService.execute_simulated_action(db, action_in)
+        action = ResponseService.execute_simulated_action(
+            db,
+            action_in,
+            owner_user_id=analyst_owner_id(analyst_user),
+        )
         ip_addr = request.client.host if request.client else "unknown"
         AuditService.log_event(
             db=db,
             action="RESPONSE_ACTION_TRIGGERED",
             user_id=analyst_user.id,
+            owner_user_id=action.owner_user_id,
             username=analyst_user.username,
             resource_type="RESPONSE_ACTION",
             resource_id=str(action.id),

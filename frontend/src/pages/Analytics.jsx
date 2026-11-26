@@ -2,19 +2,29 @@ import React from 'react';
 import PageHeader from '../components/PageHeader';
 import LoadingState from '../components/LoadingState';
 import ErrorState from '../components/ErrorState';
-import StatusBadge from '../components/StatusBadge';
+import RiskBadge from '../components/common/RiskBadge';
 import { useFetch } from '../hooks/useFetch';
-import { statisticService } from '../services/api';
-import { BarChart3, PieChart } from 'lucide-react';
+import { statisticsService } from '../services/statisticsService';
+import { formatThreatLabel } from '../utils/formatThreat';
+import { BarChart3, PieChart, RefreshCw } from 'lucide-react';
 
 const Analytics = () => {
-  const { data: stats, loading, error, refetch } = useFetch(statisticService.getStatistics);
+  const { data: stats, loading, error, refetch } = useFetch(statisticsService.getStatistics);
 
-  if (loading) return <LoadingState message="Calculating security analytics breakdown..." />;
-  if (error) return <ErrorState message={error} onRetry={refetch} />;
+  if (loading && !stats) return <LoadingState message="Calculating security analytics breakdown..." />;
+  if (error && !stats) return <ErrorState message={error} onRetry={refetch} />;
 
-  const threatTypeEntries = Object.entries(stats?.threats_by_type || {});
-  const severityEntries = Object.entries(stats?.threats_by_severity || {});
+  const metrics = stats?.data || stats || {};
+  if (
+    stats
+    && (!metrics || typeof metrics !== 'object' || !Number.isSafeInteger(metrics.total_events))
+  ) {
+    return <ErrorState message="Analytics API returned an invalid response." onRetry={refetch} />;
+  }
+  const threatTypeEntries = Object.entries(metrics.threats_by_type || {})
+    .filter(([, count]) => Number.isSafeInteger(count) && count > 0);
+  const severityEntries = Object.entries(metrics.threats_by_severity || {})
+    .filter(([, count]) => Number.isSafeInteger(count) && count > 0);
 
   return (
     <div>
@@ -22,6 +32,11 @@ const Analytics = () => {
         title="Threat Statistics & Analytics"
         description="Empirical distribution of detected threat categories and risk severity breakdown."
       />
+      <button className="btn btn-secondary" type="button" onClick={refetch} disabled={loading}>
+        <RefreshCw size={16} className={loading ? 'animate-spin' : ''} aria-hidden="true" />
+        {loading ? 'Refreshing…' : 'Refresh'}
+      </button>
+      {error && <p className="soc-inline-error" role="status">Refresh failed; showing the last successful analytics. {error}</p>}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
         {/* Threats by Category */}
@@ -36,7 +51,7 @@ const Analytics = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {threatTypeEntries.map(([category, count]) => (
                 <div key={category} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-                  <span style={{ fontWeight: 500 }}>{category}</span>
+                  <span style={{ fontWeight: 500 }}>{formatThreatLabel(category)}</span>
                   <span className="font-mono" style={{ padding: '0.2rem 0.6rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)' }}>
                     {count}
                   </span>
@@ -58,7 +73,7 @@ const Analytics = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {severityEntries.map(([level, count]) => (
                 <div key={level} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-                  <StatusBadge level={level} />
+                  <RiskBadge level={level} />
                   <span className="font-mono" style={{ padding: '0.2rem 0.6rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)' }}>
                     {count}
                   </span>

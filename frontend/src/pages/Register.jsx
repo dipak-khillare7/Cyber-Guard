@@ -47,9 +47,9 @@ const Register = () => {
           <small>SOC MONITORING CONSOLE</small>
         </div>
         <div className="auth-heading">
-          <p className="auth-eyebrow">CREATE YOUR ACCOUNT</p>
-          <h1 id="register-title">Join Cyber Guard</h1>
-          <p>Register to access the security operations workspace.</p>
+          <p className="auth-eyebrow">SOC ANALYST REGISTRATION</p>
+          <h1 id="register-title">Request an analyst account</h1>
+          <p>Verify your email, then wait for an Admin to review your request.</p>
         </div>
 
         {error && (
@@ -148,7 +148,7 @@ const Register = () => {
         </form>
 
         <div className="auth-footer">
-          <span>Already verified?</span>
+          <span>Already have an account?</span>
           <Link to="/login">Login</Link>
         </div>
       </section>

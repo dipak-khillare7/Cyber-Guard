@@ -152,14 +152,16 @@ secrets in environment configuration only; never commit them. Without a configur
 SMTP relay, registration and resend requests return a configuration error and no
 verification code is exposed by the API.
 
-The first-party registration page is `/register` (also the application root). Public
-accounts receive the legacy `VIEWER` role and cannot sign in until they enter the emailed
-6-digit code. Verification codes expire after 10 minutes and can only be used once.
-`VIEWER` is retained only so existing user records remain readable; these accounts have
-no SOC API permissions and are sent to Access Denied after login. An Administrator must
-explicitly assign an authorized role. Public registration cannot create Analyst or Admin
-accounts. Existing accounts, events, alerts, incidents, response actions, and audit logs
-are preserved without a role or database migration.
+The first-party registration page is `/register`. New accounts cannot sign in until they
+enter the emailed 6-digit code, which expires after 10 minutes and can only be used once.
+Verified requests remain pending until an Admin approves them; approval activates the
+account and assigns `ANALYST` on the backend. Submitted role fields are ignored, and public
+registration cannot create `ADMIN` accounts. Successful Analyst login routes directly to
+`/analyst/dashboard`. Existing `VIEWER` records remain unchanged and have no SOC API
+permissions. Admin user management and existing accounts, events, alerts, incidents,
+response actions, and audit logs are preserved. Startup adds nullable request status,
+reviewer ID, and review timestamp columns to the existing `users` table; no existing
+accounts are promoted or otherwise rewritten.
 
 ---
 

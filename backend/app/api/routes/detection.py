@@ -2,7 +2,7 @@ from typing import Literal, Optional
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query, status, Request
 from sqlalchemy.orm import Session
-from sqlalchemy import desc, func
+from sqlalchemy import and_, desc, exists, func
 
 from app.database import get_db
 from app.schemas.detection import AnalyzeEventRequest, DetectionResponseData, ApiResponse
@@ -12,6 +12,7 @@ from app.models.security_event import SecurityEvent
 from app.models.alert import Alert
 from app.schemas.enums import ThreatType, RiskLevel
 from app.api.deps import (
+    analyst_owner_id,
     enforce_ingestion_ip_rate_limit,
     require_analyst,
 )
@@ -53,6 +54,7 @@ def analyze_security_event(
             db=db,
             action="EVENT_ANALYZED",
             user_id=current_user.id,
+            owner_user_id=current_user.id,
             username=current_user.username,
             resource_type="DETECTION",
             resource_id=str(result.event_id),
@@ -102,8 +104,17 @@ def get_detection_history(
     """
     Retrieves paginated historical detection analyses with filtering support.
     """
-    query = db.query(SecurityEvent).outerjoin(Alert, SecurityEvent.id == Alert.event_id)
-    owner_user_id = current_user.id if scope == "own" else None
+    owner_user_id = analyst_owner_id(current_user)
+    if owner_user_id is None and scope == "own":
+        owner_user_id = current_user.id
+    if owner_user_id is not None:
+        alert_join = and_(
+            SecurityEvent.id == Alert.event_id,
+            Alert.owner_user_id == owner_user_id,
+        )
+    else:
+        alert_join = SecurityEvent.id == Alert.event_id
+    query = db.query(SecurityEvent).outerjoin(Alert, alert_join)
     if owner_user_id is not None:
         query = query.filter(SecurityEvent.owner_user_id == owner_user_id)
 
@@ -121,7 +132,14 @@ def get_detection_history(
 
     items = []
     for ev in events:
-        associated_alert = ev.alerts[0] if ev.alerts else None
+        associated_alert = next(
+            (
+                alert
+                for alert in ev.alerts
+                if owner_user_id is None or alert.owner_user_id == owner_user_id
+            ),
+            None,
+        )
         items.append({
             "event_id": ev.id,
             "timestamp": format_iso_utc(ev.timestamp),
@@ -153,7 +171,7 @@ def get_detection_history(
 def get_detection_trend(
     hours: int = Query(24, ge=1, le=720),
     db: Session = Depends(get_db),
-    _current_user=Depends(require_analyst),
+    current_user=Depends(require_analyst),
 ):
     """
     Computes time-series detection trends grouped by time window in IST (Asia/Kolkata).
@@ -161,33 +179,56 @@ def get_detection_trend(
     ist_tz = timezone(timedelta(hours=5, minutes=30))
     now_utc = datetime.now(timezone.utc)
     now_ist = now_utc.astimezone(ist_tz)
-    cutoff_naive = (now_utc - timedelta(hours=hours)).replace(tzinfo=None)
+    current_hour_ist = now_ist.replace(minute=0, second=0, microsecond=0)
+    first_hour_ist = current_hour_ist - timedelta(hours=hours - 1)
+    first_hour_utc = first_hour_ist.astimezone(timezone.utc).replace(tzinfo=None)
+    now_naive = now_utc.replace(tzinfo=None)
+    owner_user_id = analyst_owner_id(current_user)
 
-    query = db.query(SecurityEvent).filter(SecurityEvent.timestamp >= cutoff_naive)
-    events = query.all()
+    threat_alert_exists = exists().where(
+        and_(
+            Alert.event_id == SecurityEvent.id,
+            func.upper(func.trim(func.coalesce(Alert.threat_type, "")))
+            != ThreatType.NORMAL.value,
+            *(
+                [Alert.owner_user_id == owner_user_id]
+                if owner_user_id is not None
+                else []
+            ),
+        )
+    )
+    query = db.query(SecurityEvent.timestamp, threat_alert_exists.label("has_threat"))
+    query = query.filter(
+        SecurityEvent.timestamp >= first_hour_utc,
+        SecurityEvent.timestamp <= now_naive,
+    )
+    if owner_user_id is not None:
+        query = query.filter(SecurityEvent.owner_user_id == owner_user_id)
 
-    # Aggregate events by IST hour label
     trend_buckets = {}
     for i in range(hours):
-        h_time = now_ist - timedelta(hours=hours - 1 - i)
-        label = h_time.strftime("%H:00")
+        h_time = first_hour_ist + timedelta(hours=i)
+        label = h_time.strftime("%d %b %Y %H:%M")
         trend_buckets[label] = {"time": label, "total": 0, "threats": 0, "normal": 0}
 
-    for ev in events:
-        ev_dt = ev.timestamp
-        if ev_dt is not None:
-            if ev_dt.tzinfo is None:
-                ev_dt = ev_dt.replace(tzinfo=timezone.utc)
-            ev_ist = ev_dt.astimezone(ist_tz)
-            label = ev_ist.strftime("%H:00")
-        else:
-            label = now_ist.strftime("%H:00")
-
-        if label not in trend_buckets:
-            trend_buckets[label] = {"time": label, "total": 0, "threats": 0, "normal": 0}
-
+    for event_timestamp, has_threat in query.all():
+        event_utc = (
+            event_timestamp.replace(tzinfo=timezone.utc)
+            if event_timestamp.tzinfo is None
+            else event_timestamp.astimezone(timezone.utc)
+        )
+        event_hour_ist = event_utc.astimezone(ist_tz).replace(
+            minute=0, second=0, microsecond=0
+        )
+        bucket_index = int(
+            (event_hour_ist - first_hour_ist).total_seconds() // 3600
+        )
+        if not 0 <= bucket_index < hours:
+            continue
+        label = (first_hour_ist + timedelta(hours=bucket_index)).strftime(
+            "%d %b %Y %H:%M"
+        )
         trend_buckets[label]["total"] += 1
-        has_threat = any(a.threat_type != ThreatType.NORMAL.value for a in ev.alerts)
         if has_threat:
             trend_buckets[label]["threats"] += 1
         else:

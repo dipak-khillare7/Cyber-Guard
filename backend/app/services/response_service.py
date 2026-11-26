@@ -39,12 +39,16 @@ class ResponseService:
     @staticmethod
     def execute_simulated_action(
         db: Session,
-        action_in: ResponseActionCreate
+        action_in: ResponseActionCreate,
+        owner_user_id: Optional[int] = None,
     ) -> ResponseAction:
         """
         Simulates and records a response action for a security incident.
         """
-        incident = db.query(Incident).filter(Incident.id == action_in.incident_id).first()
+        incident_query = db.query(Incident).filter(Incident.id == action_in.incident_id)
+        if owner_user_id is not None:
+            incident_query = incident_query.filter(Incident.owner_user_id == owner_user_id)
+        incident = incident_query.first()
         if not incident:
             logger.warning(f"Response action requested for non-existent incident ID {action_in.incident_id}")
             raise ValueError(f"Incident with ID {action_in.incident_id} not found.")
@@ -52,6 +56,7 @@ class ResponseService:
         desc = action_in.description or f"Simulated execution of {action_in.action_type.value}"
 
         db_action = ResponseAction(
+            owner_user_id=incident.owner_user_id,
             incident_id=incident.id,
             action_type=action_in.action_type.value if hasattr(action_in.action_type, "value") else str(action_in.action_type),
             action_status=ActionStatus.SIMULATED.value,
@@ -71,5 +76,12 @@ class ResponseService:
         return db_action
 
     @staticmethod
-    def get_actions_by_incident(db: Session, incident_id: int):
-        return db.query(ResponseAction).filter(ResponseAction.incident_id == incident_id).all()
+    def get_actions_by_incident(
+        db: Session,
+        incident_id: int,
+        owner_user_id: Optional[int] = None,
+    ):
+        query = db.query(ResponseAction).filter(ResponseAction.incident_id == incident_id)
+        if owner_user_id is not None:
+            query = query.filter(ResponseAction.owner_user_id == owner_user_id)
+        return query.all()

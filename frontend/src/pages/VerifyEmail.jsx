@@ -25,7 +25,10 @@ const VerifyEmail = () => {
       setStatus('success');
       setMessage(result.message);
       window.setTimeout(
-        () => navigate('/login', { replace: true, state: { verified: true } }),
+        () => navigate('/login', {
+          replace: true,
+          state: { verified: true, verifiedMessage: result.message },
+        }),
         1800,
       );
     } catch (requestError) {
@@ -67,7 +70,7 @@ const VerifyEmail = () => {
           <div className="auth-state" role="status">
             <CheckCircle2 className="auth-state-icon success" size={42} />
             <h1 id="verify-title">Email verified</h1>
-            <p className="auth-success-copy">Your email has been verified successfully. You can now log in.</p>
+            <p className="auth-success-copy">{message}</p>
             <p>Redirecting you to login…</p>
           </div>
         ) : (

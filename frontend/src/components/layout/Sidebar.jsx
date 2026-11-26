@@ -7,9 +7,11 @@ import {
   Activity, 
   AlertTriangle, 
   ShieldAlert, 
+  BarChart3,
   PlayCircle,
   Settings,
   FileText,
+  UserCheck,
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -19,10 +21,12 @@ const Sidebar = () => {
   const allNavItems = [
     { path: `${analystBase}/dashboard`, label: user?.role === 'ANALYST' ? 'SOC Overview' : 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'ANALYST'] },
     { path: `${analystBase}/detections`, label: user?.role === 'ANALYST' ? 'Threat Detection' : 'AI Detections', icon: Activity, roles: ['ADMIN', 'ANALYST'] },
+    { path: `${analystBase}/analytics`, label: 'Analytics', icon: BarChart3, roles: ['ADMIN', 'ANALYST'] },
     { path: `${analystBase}/alerts`, label: 'Threat Alerts', icon: AlertTriangle, roles: ['ADMIN', 'ANALYST'] },
     { path: `${analystBase}/incidents`, label: 'Incidents', icon: ShieldAlert, roles: ['ADMIN', 'ANALYST'] },
     { path: `${analystBase}/response-actions`, label: 'Simulated Responses', icon: PlayCircle, roles: ['ADMIN', 'ANALYST'] },
     { path: `${analystBase}/audit-logs`, label: 'Audit Logs', icon: FileText, roles: ['ADMIN', 'ANALYST'] },
+    { path: '/admin/analyst-requests', label: 'Analyst Account Requests', icon: UserCheck, roles: ['ADMIN'] },
     { path: `${analystBase}/settings`, label: 'Settings & Model', icon: Settings, roles: ['ADMIN', 'ANALYST'] },
   ];
 

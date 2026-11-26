@@ -69,7 +69,7 @@ const Login = () => {
         {verified && (
           <div className="auth-notice auth-notice-success" role="status">
             <CheckCircle2 size={18} />
-            <span>Your email has been verified successfully. You can now log in.</span>
+            <span>{location.state?.verifiedMessage || 'Your email has been verified successfully.'}</span>
           </div>
         )}
         {sessionExpired && !error && (

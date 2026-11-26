@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.schemas.audit_log import AuditLogListResponse, AuditLogResponse
 from app.services.audit_service import AuditService
-from app.api.deps import require_analyst
+from app.api.deps import analyst_owner_id, require_analyst
 
 router = APIRouter(prefix="/audit-logs", tags=["Audit Logging & System Trails"])
 
@@ -27,7 +27,8 @@ def get_audit_logs(
         page=page,
         limit=limit,
         action=action,
-        username=username
+        username=username,
+        owner_user_id=analyst_owner_id(current_user),
     )
     pages = (total + limit - 1) // limit if limit > 0 else 1
 

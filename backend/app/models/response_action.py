@@ -15,6 +15,7 @@ class ResponseAction(Base):
     __tablename__ = "response_actions"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    owner_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     incident_id = Column(Integer, ForeignKey("incidents.id", ondelete="CASCADE"), nullable=False, index=True)
     action_type = Column(String(50), nullable=False, index=True)   # LOG, ALERT, SIMULATED_BLOCK, etc.
     action_status = Column(String(20), default="SIMULATED", nullable=False, index=True) # PENDING, EXECUTED, FAILED, SIMULATED

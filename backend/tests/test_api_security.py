@@ -12,9 +12,212 @@ from app.core.rate_limit import (
     rate_limiter,
 )
 from app.core.security import create_access_token
+from app.models.security_event import SecurityEvent
 from app.models.user import User, UserRole
+from app.schemas.alert import AlertCreate
 from app.schemas.user import UserCreate
 from app.services.user_service import UserService
+from app.services.alert_service import AlertService
+
+
+def _create_analyst_headers(db_session, username, email):
+    analyst = UserService.create_user(
+        db_session,
+        UserCreate(
+            username=username,
+            email=email,
+            password="AnalystPassword123!",
+            role=UserRole.ANALYST,
+        ),
+    )
+    return analyst, {
+        "Authorization": (
+            "Bearer "
+            + create_access_token(subject=analyst.id, role=analyst.role.value)
+        )
+    }
+
+
+def test_analyst_data_is_isolated_across_events_alerts_incidents_responses_and_audit(
+    client, db_session, admin_headers, monkeypatch
+):
+    monkeypatch.setattr(
+        "app.api.routes.events.predictor.predict",
+        lambda *_args, **_kwargs: {"predicted_threat": "NORMAL", "confidence": 0.0},
+    )
+    analyst_a, headers_a = _create_analyst_headers(
+        db_session, "analyst_isolation_a", "analyst.isolation.a@example.com"
+    )
+    analyst_b, headers_b = _create_analyst_headers(
+        db_session, "analyst_isolation_b", "analyst.isolation.b@example.com"
+    )
+
+    event_a_response = client.post(
+        "/api/v1/events",
+        json={
+            "source_ip": "192.0.2.41",
+            "destination_ip": "198.51.100.41",
+            "destination_port": 8443,
+            "owner_user_id": analyst_b.id,
+        },
+        headers=headers_a,
+    )
+    event_b_response = client.post(
+        "/api/v1/events",
+        json={
+            "source_ip": "192.0.2.42",
+            "destination_ip": "198.51.100.42",
+            "destination_port": 9443,
+        },
+        headers=headers_b,
+    )
+    assert event_a_response.status_code == 201
+    assert event_b_response.status_code == 201
+    event_a_id = event_a_response.json()["id"]
+    event_b_id = event_b_response.json()["id"]
+    assert db_session.get(SecurityEvent, event_a_id).owner_user_id == analyst_a.id
+    assert db_session.get(SecurityEvent, event_b_id).owner_user_id == analyst_b.id
+    event_a = client.get(f"/api/v1/events/{event_a_id}", headers=headers_a)
+    assert event_a.status_code == 200
+    assert db_session.get(User, analyst_a.id) is not None
+    assert client.get(f"/api/v1/events/{event_b_id}", headers=headers_a).status_code == 404
+
+    alerts = {}
+    incidents = {}
+    for analyst, headers, event_id, suffix in (
+        (analyst_a, headers_a, event_a_id, "a"),
+        (analyst_b, headers_b, event_b_id, "b"),
+    ):
+        alert, _ = AlertService.create_alert(
+            db_session,
+            AlertCreate(
+                event_id=event_id,
+                threat_type="DOS_DDOS",
+                confidence=0.99,
+                risk_level="HIGH",
+                message=f"Isolation alert {suffix}",
+            ),
+        )
+        alerts[suffix] = alert
+        incident_response = client.post(
+            "/api/v1/incidents",
+            json={
+                "alert_id": alert.id,
+                "threat_type": "DOS_DDOS",
+                "severity": "HIGH",
+                "description": f"Isolation incident {suffix}",
+            },
+            headers=headers,
+        )
+        assert incident_response.status_code == 201
+        incidents[suffix] = incident_response.json()
+
+    events_a = client.get("/api/v1/events?scope=role", headers=headers_a).json()
+    events_b = client.get("/api/v1/events?scope=role", headers=headers_b).json()
+    assert {item["id"] for item in events_a["items"]} == {event_a_id}
+    assert {item["id"] for item in events_b["items"]} == {event_b_id}
+    history_a = client.get("/api/v1/detection/history", headers=headers_a).json()
+    history_b = client.get("/api/v1/detection/history", headers=headers_b).json()
+    assert {item["event_id"] for item in history_a["items"]} == {event_a_id}
+    assert {item["event_id"] for item in history_b["items"]} == {event_b_id}
+    trend_a = client.get("/api/v1/detection/trend?hours=1", headers=headers_a).json()
+    trend_b = client.get("/api/v1/detection/trend?hours=1", headers=headers_b).json()
+    assert sum(item["total"] for item in trend_a["trend"]) == 1
+    assert sum(item["total"] for item in trend_b["trend"]) == 1
+
+    alerts_a = client.get("/api/v1/alerts", headers=headers_a).json()
+    alerts_b = client.get("/api/v1/alerts", headers=headers_b).json()
+    assert {item["id"] for item in alerts_a["items"]} == {alerts["a"].id}
+    assert {item["id"] for item in alerts_b["items"]} == {alerts["b"].id}
+    assert client.get(
+        f"/api/v1/alerts/{alerts['b'].id}", headers=headers_a
+    ).status_code == 404
+    assert client.patch(
+        f"/api/v1/alerts/{alerts['b'].id}",
+        json={"status": "RESOLVED"},
+        headers=headers_a,
+    ).status_code == 404
+
+    assert client.get(
+        f"/api/v1/incidents/{incidents['b']['id']}", headers=headers_a
+    ).status_code == 404
+    assert client.patch(
+        f"/api/v1/incidents/{incidents['b']['id']}",
+        json={"status": "RESOLVED"},
+        headers=headers_a,
+    ).status_code == 404
+    assert client.post(
+        f"/api/v1/incidents/{incidents['b']['id']}/response",
+        json={
+            "incident_id": incidents["b"]["id"],
+            "action_type": "LOG",
+            "description": "Cross-owner attempt",
+        },
+        headers=headers_a,
+    ).status_code == 404
+    assert client.post(
+        "/api/v1/incidents",
+        json={
+            "alert_id": alerts["b"].id,
+            "threat_type": "DOS_DDOS",
+            "severity": "HIGH",
+            "description": "Cross-owner incident attempt",
+        },
+        headers=headers_a,
+    ).status_code == 404
+
+    actions_a = client.get("/api/v1/response-actions", headers=headers_a).json()
+    actions_b = client.get("/api/v1/response-actions", headers=headers_b).json()
+    assert actions_a["items"]
+    assert actions_b["items"]
+    assert all(item["incident_id"] == incidents["a"]["id"] for item in actions_a["items"])
+    assert all(item["incident_id"] == incidents["b"]["id"] for item in actions_b["items"])
+
+    stats_a = client.get("/api/v1/statistics", headers=headers_a).json()["data"]
+    stats_b = client.get("/api/v1/statistics", headers=headers_b).json()["data"]
+    admin_stats = client.get("/api/v1/statistics", headers=admin_headers).json()["data"]
+    assert stats_a["total_events"] == 1
+    assert stats_b["total_events"] == 1
+    assert stats_a["total_alerts"] == len(alerts_a["items"])
+    assert stats_b["total_alerts"] == len(alerts_b["items"])
+    assert stats_a["total_incidents"] == 1
+    assert stats_b["total_incidents"] == 1
+    assert admin_stats["total_events"] == 2
+    assert admin_stats["total_alerts"] == stats_a["total_alerts"] + stats_b["total_alerts"]
+    assert admin_stats["total_incidents"] == 2
+
+    audit_a = client.get("/api/v1/audit-logs", headers=headers_a).json()
+    audit_b = client.get("/api/v1/audit-logs", headers=headers_b).json()
+    assert audit_a["items"]
+    assert audit_b["items"]
+    assert all(item["username"] == analyst_a.username for item in audit_a["items"])
+    assert all(item["username"] == analyst_b.username for item in audit_b["items"])
+
+    admin_events = client.get("/api/v1/events", headers=admin_headers).json()
+    assert {item["id"] for item in admin_events["items"]} == {event_a_id, event_b_id}
+    assert client.patch(
+        f"/api/v1/alerts/{alerts['b'].id}",
+        json={"status": "ACKNOWLEDGED"},
+        headers=admin_headers,
+    ).status_code == 200
+
+    assert client.patch(
+        f"/api/v1/events/{event_b_id}",
+        json={"raw_data": "attempt"},
+        headers=headers_a,
+    ).status_code == 405
+    assert client.delete(
+        f"/api/v1/events/{event_b_id}",
+        headers=headers_a,
+    ).status_code == 405
+    assert client.delete(
+        f"/api/v1/alerts/{alerts['b'].id}",
+        headers=headers_a,
+    ).status_code == 405
+    assert client.delete(
+        f"/api/v1/incidents/{incidents['b']['id']}",
+        headers=headers_a,
+    ).status_code == 405
 
 
 @pytest.mark.parametrize(

@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 from typing import Optional
 from datetime import datetime
-from app.models.user import UserRole
+from app.models.user import AnalystRequestStatus, UserRole
 
 class UserBase(BaseModel):
     username: str = Field(..., min_length=3, max_length=50, description="Unique username")
@@ -108,6 +108,24 @@ class ResendVerificationRequest(BaseModel):
 
 class AuthMessageResponse(BaseModel):
     message: str
+
+
+class AnalystAccountRequestResponse(BaseModel):
+    id: int
+    full_name: Optional[str] = None
+    email: EmailStr
+    status: AnalystRequestStatus
+    email_verified: bool
+    created_at: datetime
+    reviewed_by_user_id: Optional[int] = None
+    reviewed_at: Optional[datetime] = None
+
+
+class AnalystAccountRequestListResponse(BaseModel):
+    items: list[AnalystAccountRequestResponse]
+    total: int
+    page: int
+    limit: int
 
 
 class TokenResponse(BaseModel):

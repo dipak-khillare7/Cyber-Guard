@@ -46,6 +46,21 @@ export const authService = {
     return response.data;
   },
 
+  getAnalystRequests: async (params = {}) => {
+    const response = await api.get('/auth/analyst-requests', { params });
+    return response.data;
+  },
+
+  approveAnalystRequest: async (requestId) => {
+    const response = await api.post(`/auth/analyst-requests/${requestId}/approve`);
+    return response.data;
+  },
+
+  rejectAnalystRequest: async (requestId) => {
+    const response = await api.post(`/auth/analyst-requests/${requestId}/reject`);
+    return response.data;
+  },
+
   createUser: async (userData) => {
     const response = await api.post('/auth/users', userData);
     return response.data;

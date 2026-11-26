@@ -10,6 +10,7 @@ from app.ml.inference.predictor import ThreatPredictor
 from app.schemas.alert import AlertCreate
 from app.schemas.enums import ThreatType, AlertStatus
 from app.api.deps import (
+    analyst_owner_id,
     enforce_ingestion_ip_rate_limit,
     require_analyst,
 )
@@ -93,12 +94,15 @@ def list_events(
     """
     Retrieves security events with pagination and optional event_type filtering.
     """
+    owner_user_id = analyst_owner_id(current_user)
+    if owner_user_id is None and scope == "own":
+        owner_user_id = current_user.id
     events, total = EventService.list_events(
         db,
         skip=skip,
         limit=limit,
         event_type=event_type,
-        owner_user_id=current_user.id if scope == "own" else None,
+        owner_user_id=owner_user_id,
     )
     return {
         "total": total,
@@ -120,6 +124,7 @@ def get_event(
     event = EventService.get_event_by_id(
         db,
         event_id,
+        owner_user_id=analyst_owner_id(current_user),
     )
     if not event:
         raise HTTPException(

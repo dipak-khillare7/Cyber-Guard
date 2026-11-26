@@ -15,10 +15,19 @@ import { useIncidents } from '../hooks/useIncidents';
 import { eventService } from '../services/eventService';
 import { formatDate } from '../utils/formatDate';
 import { formatThreatLabel } from '../utils/formatThreat';
+import { useAuth } from '../context/AuthContext';
 import { Activity, AlertTriangle, Eye, Plus, RefreshCw, ShieldAlert } from 'lucide-react';
 
 const Dashboard = () => {
-  const { stats, loading: statsLoading, error: statsError, refetch: refreshStats } = useStatistics();
+  const {
+    stats,
+    trendData,
+    loading: statsLoading,
+    error: statsError,
+    trendError,
+    refetch: refreshStats,
+  } = useStatistics();
+  const { role } = useAuth();
   const {
     alerts,
     loading: alertsLoading,
@@ -82,7 +91,9 @@ const Dashboard = () => {
           <p className="soc-eyebrow">SECURITY OPERATIONS CENTER</p>
           <h1 className="page-title">SOC Overview</h1>
           <p className="page-description">
-            Platform-wide event, alert, and incident activity from the backend records.
+            {role === 'ADMIN'
+              ? 'Platform-wide event, alert, and incident activity from backend records.'
+              : 'Your event, alert, and incident activity from backend records.'}
           </p>
         </div>
         <div className="soc-dashboard-actions">
@@ -108,11 +119,11 @@ const Dashboard = () => {
       </section>
 
       <section className="soc-chart-grid" aria-label="Threat and risk distributions">
-        <ThreatDistributionChart data={stats?.threats_by_type || stats?.threat_distribution || {}} />
-        <RiskSummaryChart data={stats?.threats_by_severity || stats?.risk_distribution || {}} />
+        <ThreatDistributionChart data={stats?.threats_by_type || {}} />
+        <RiskSummaryChart data={stats?.threats_by_severity || {}} />
       </section>
 
-      <DetectionTrendChart trendData={stats?.detection_trend || []} />
+      <DetectionTrendChart trendData={trendData} error={trendError} />
 
       <section className="table-card soc-dashboard-panel" aria-labelledby="recent-events-heading">
         <div className="table-header">

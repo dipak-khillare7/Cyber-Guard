@@ -6,7 +6,7 @@ from app.database.connection import get_db
 from app.models.response_action import ResponseAction
 from app.models.incident import Incident
 from app.schemas.response_action import ResponseActionRead
-from app.api.deps import require_analyst
+from app.api.deps import analyst_owner_id, require_analyst
 
 router = APIRouter(prefix="/response-actions", tags=["Response Actions"])
 
@@ -17,7 +17,7 @@ def list_response_actions(
     limit: int = Query(50, ge=1, le=100),
     action_type: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-    _analyst_user=Depends(require_analyst),
+    analyst_user=Depends(require_analyst),
 ):
     """
     Retrieves safe simulated response action execution history.
@@ -25,6 +25,12 @@ def list_response_actions(
     query = db.query(ResponseAction).options(
         joinedload(ResponseAction.incident).joinedload(Incident.alert)
     )
+    owner_user_id = analyst_owner_id(analyst_user)
+    if owner_user_id is not None:
+        query = query.filter(
+            ResponseAction.owner_user_id == owner_user_id,
+            Incident.owner_user_id == owner_user_id,
+        ).join(Incident, ResponseAction.incident_id == Incident.id)
     if action_type:
         query = query.filter(ResponseAction.action_type == action_type.upper())
 

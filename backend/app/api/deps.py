@@ -125,3 +125,7 @@ class RoleChecker:
 # Role-specific helpers
 require_admin = RoleChecker([UserRole.ADMIN])
 require_analyst = RoleChecker([UserRole.ADMIN, UserRole.ANALYST])
+
+
+def analyst_owner_id(current_user: User) -> Optional[int]:
+    return current_user.id if current_user.role == UserRole.ANALYST else None

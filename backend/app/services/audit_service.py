@@ -13,6 +13,7 @@ class AuditService:
         db: Session,
         action: str,
         user_id: Optional[int] = None,
+        owner_user_id: Optional[int] = None,
         username: Optional[str] = None,
         resource_type: Optional[str] = None,
         resource_id: Optional[str] = None,
@@ -27,6 +28,7 @@ class AuditService:
         try:
             metadata_str = json.dumps(metadata) if metadata else None
             audit_entry = AuditLog(
+                owner_user_id=owner_user_id if owner_user_id is not None else user_id,
                 user_id=user_id,
                 username=username,
                 action=action,
@@ -53,12 +55,15 @@ class AuditService:
         page: int = 1,
         limit: int = 20,
         action: Optional[str] = None,
-        username: Optional[str] = None
+        username: Optional[str] = None,
+        owner_user_id: Optional[int] = None,
     ) -> tuple[list[AuditLog], int]:
         """
         Retrieves paginated audit logs for administration review.
         """
         query = db.query(AuditLog)
+        if owner_user_id is not None:
+            query = query.filter(AuditLog.owner_user_id == owner_user_id)
         if action:
             query = query.filter(AuditLog.action == action)
         if username:

@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional
 from sqlalchemy.orm import Session
-from app.models.user import User, UserRole
+from app.models.user import AnalystRequestStatus, User, UserRole
 from app.schemas.user import UserCreate, UserUpdate
 from app.core.security import hash_password, verify_password
 from app.core.config import settings
@@ -30,6 +30,8 @@ class UserService:
         *,
         full_name: Optional[str] = None,
         email_verified: bool = True,
+        is_active: bool = True,
+        analyst_request_status: Optional[AnalystRequestStatus] = None,
         verification_token_hash: Optional[str] = None,
         verification_expires_at: Optional[datetime] = None,
     ) -> User:
@@ -40,8 +42,10 @@ class UserService:
             full_name=full_name,
             hashed_password=hashed_pwd,
             role=user_in.role,
-            is_active=True,
+            is_active=is_active,
             email_verified=email_verified,
+            analyst_request_status=analyst_request_status.value
+            if analyst_request_status else None,
             email_verification_token_hash=verification_token_hash,
             email_verification_expires_at=verification_expires_at,
             verification_last_sent_at=datetime.now(timezone.utc).replace(tzinfo=None)

@@ -1,20 +1,25 @@
 import React from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { getThreatColor, formatThreatLabel } from '../../utils/formatThreat';
+import { getThreatDistributionChartData } from '../../utils/chartData';
+import { getThreatColor } from '../../utils/formatThreat';
 
 const ThreatDistributionChart = ({ data = {} }) => {
-  const chartData = Object.entries(data).map(([key, count]) => ({
-    name: formatThreatLabel(key),
-    rawKey: key,
-    value: count,
-    color: getThreatColor(key)
-  }));
+  const chartData = getThreatDistributionChartData(data)
+    .map((entry) => ({ ...entry, color: getThreatColor(entry.rawKey) }));
+  const hasInvalidCounts = !data
+    || typeof data !== 'object'
+    || Array.isArray(data)
+    || Object.values(data).some((count) => !Number.isSafeInteger(count) || count < 0);
 
   if (chartData.length === 0) {
     return (
       <div className="table-card" style={{ padding: '1.5rem', textAlign: 'center' }}>
         <h3 style={{ fontSize: '1.05rem', marginBottom: '1rem', fontWeight: 600 }}>Alert Threat Category Distribution</h3>
-        <p className="empty-state">No categorized threats detected in database yet.</p>
+        <p className={hasInvalidCounts ? 'soc-inline-error' : 'empty-state'}>
+          {hasInvalidCounts
+            ? 'Threat category counts are invalid and cannot be displayed.'
+            : 'No categorized alert records are available.'}
+        </p>
       </div>
     );
   }
@@ -24,6 +29,7 @@ const ThreatDistributionChart = ({ data = {} }) => {
       <h3 style={{ fontSize: '1.05rem', marginBottom: '1rem', fontWeight: 600 }}>
         Alert Threat Category Distribution
       </h3>
+      {hasInvalidCounts && <p className="soc-inline-error" role="status">Invalid category counts were omitted.</p>}
       <div style={{ width: '100%', height: 260 }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
